@@ -1,0 +1,11 @@
+until - Reads all of the parameter files in this directory and its
+subdirectories to give the user a list of redshifts, code times,
+universe ages, and time until the final output.
+
+Author: John H. Wise
+Date: 2004-
+
+Usage: ./until [directory prefix] [output prefix]
+Example: ./until DD output_
+
+No flags necessary.

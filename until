@@ -1,0 +1,80 @@
+#!/usr/bin/perl
+
+$|++;
+
+die "usage: $0 <directory prefix> <basename>\n" if (scalar @ARGV != 2);
+
+$dirbase = @ARGV[0];
+$basename = @ARGV[1];
+
+@outputs = glob($dirbase . "????/" . $basename . "????");
+#push(@outputs, glob($basename . "????"));
+sort @outputs;
+die "no outputs found with basename $basename\n" if (scalar @outputs == 0);
+
+# Get redshifts, code times, and time conversion from parameter files
+
+$first = 1;
+$count = 0;
+print "Reading parameter files";
+foreach (@outputs) {
+
+    print ".";
+
+    if ($first == 1) {
+	/\_(.*)\./i;  
+	$firstOutput = int($1);
+    }
+
+    open(IN, $_);
+
+    while (<IN>) {
+	if (/^InitialTime/) {
+	    /= ([0-9]*.[0-9]*)/i;
+	    $time[$count] = $1;
+	}
+	if (/^CosmologyCurrentRedshift/) {
+	    /= ([0-9]*.[0-9]*)/i;
+	    $z[$count++] = $1;
+	}
+
+	if ($first) {
+	    if (/^CosmologyComovingBoxSize/) {
+		/= ([0-9]*.[0-9]*)/i;
+		$box = $1;
+	    }
+	    if (/^CosmologyHubbleConstantNow/) {
+		/= ([0-9]*.[0-9]*)/i;
+		$h = $1;
+	    }
+
+	    if (/^\#DataCGSConversionFactor\[3/) {
+		/= (.*)/i;
+		$vunit = $1;
+	    }
+	    if (/^CosmologyInitialRedshift/) {
+		/= ([0-9]*.[0-9]*)/i;
+		$z0 = $1;
+		$timeUnit = ($box/$h/($z0+1)) * 3.086e24 / 
+		    $vunit / 3.1557e7;  # years
+	    }
+		
+	}  # end: first
+
+    } # end: read parameter file
+
+    $first = 0;
+
+} # end: output loop
+
+print "\n";
+printf "%18s %18s %18s %18s\n", "Output \#", "Redshift", "Universe Age", 
+    "Time ->last output";
+printf "%18s %18s %18s %18s\n", "", "", "[years]", 
+    "[years]";
+print "=" x 80 . "\n";
+
+for $i (0 .. $#outputs) {
+    printf "%18d %18.6f %18.6g %18.6g\n", $i+$firstOutput, $z[$i], 
+    $time[$i] * $timeUnit, ($time[$#outputs] - $time[$i]) * $timeUnit;
+}
